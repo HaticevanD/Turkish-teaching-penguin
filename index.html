@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hava Durumunu Yakala</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+        overflow: hidden;
+        background: #87ceeb;
+      }
+      #oyunAlan {
+        position: relative;
+        width: 100%;
+        max-width: 800px;
+        height: 500px;
+        margin: 0 auto;
+        border: 2px solid #0077cc;
+        background: linear-gradient(to bottom, #87ceeb 0%, #cceeff 100%);
+        overflow: hidden;
+        border-radius: 10px;
+      }
+      .bulut {
+        position: absolute;
+        top: 50px;
+        font-size: 80px;
+        opacity: 0.3;
+        animation: bulutHareket 60s linear infinite;
+      }
+      @keyframes bulutHareket {
+        0% {
+          left: -200px;
+        }
+        100% {
+          left: 900px;
+        }
+      }
+      #penguen {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 50px;
+        transition: left 0.05s, font-size 0.2s;
+      }
+      .hava {
+        position: absolute;
+        font-size: 40px;
+        pointer-events: none;
+      }
+      @keyframes dus {
+        from {
+          top: -50px;
+        }
+        to {
+          top: 450px;
+        }
+      }
+      #kelime {
+        margin-top: 20px;
+        font-size: 22px;
+        color: #fff;
+        text-shadow: 1px 1px 2px #000;
+      }
+      #puan {
+        margin-top: 10px;
+        font-size: 20px;
+        color: #fff;
+        text-shadow: 1px 1px 2px #000;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="color: #fff; text-shadow: 2px 2px 4px #000">
+      Hava Durumunu Yakala
+    </h1>
+    <div id="oyunAlan">
+      <div id="penguen">🐧</div>
+    </div>
+    <div id="kelime">Bugün hava ... .</div>
+    <div id="puan">Puan: 0</div>
+
+    <script>
+      const havaDurumu = [
+        { kelime: "güneşli", simge: "☀️" },
+        { kelime: "bulutlu", simge: "☁️" },
+        { kelime: "yağmurlu", simge: "🌧️" },
+        { kelime: "karlı", simge: "❄️" },
+        { kelime: "fırtınalı", simge: "🌩️" },
+        { kelime: "sisli", simge: "🌫️" },
+        { kelime: "hafif güneşli", simge: "🌤️" },
+      ];
+
+      let puan = 0;
+      let aktifKelime = null; // Şu anki kelime
+      const oyunAlan = document.getElementById("oyunAlan");
+      const penguen = document.getElementById("penguen");
+      const kelimeElement = document.getElementById("kelime");
+      const puanElement = document.getElementById("puan");
+
+      let penguenX = 50;
+
+      // Penguen fare ile hareket
+      oyunAlan.addEventListener("mousemove", (e) => {
+        const rect = oyunAlan.getBoundingClientRect();
+        penguenX = e.clientX - rect.left;
+        if (penguenX < 0) penguenX = 0;
+        if (penguenX > rect.width) penguenX = rect.width;
+        penguen.style.left = penguenX + "px";
+      });
+
+      // Bulut ekleme
+      function bulutOlustur() {
+        const bulut = document.createElement("div");
+        bulut.classList.add("bulut");
+        const bulutSimge = ["☁️", "☁️", "☁️"][Math.floor(Math.random() * 3)];
+        bulut.innerText = bulutSimge;
+        bulut.style.top = Math.random() * 200 + "px";
+        bulut.style.fontSize = 50 + Math.random() * 50 + "px";
+        oyunAlan.appendChild(bulut);
+        setTimeout(() => bulut.remove(), 60000);
+      }
+      setInterval(bulutOlustur, 5000);
+
+      // Maksimum simge sayısı
+      const maxSimge = 10;
+      let simgeler = [];
+
+      // Yeni kelime seç ve ekrana yaz
+      function kelimeSec() {
+        aktifKelime = havaDurumu[Math.floor(Math.random() * havaDurumu.length)];
+        kelimeElement.innerHTML = "Bugün hava " + aktifKelime.kelime + ".";
+      }
+
+      // Yeni simge oluştur
+      function simgeOlustur() {
+        if (simgeler.length >= maxSimge) return;
+
+        const secilen =
+          havaDurumu[Math.floor(Math.random() * havaDurumu.length)];
+        const simgeDiv = document.createElement("div");
+        simgeDiv.classList.add("hava");
+        simgeDiv.innerText = secilen.simge;
+        simgeDiv.dataset.kelime = secilen.kelime;
+        const x = Math.random() * (oyunAlan.clientWidth - 50);
+        simgeDiv.style.left = x + "px";
+        simgeDiv.style.top = "-50px";
+        simgeDiv.style.animation = "dus 5s linear forwards";
+        oyunAlan.appendChild(simgeDiv);
+        simgeler.push(simgeDiv);
+
+        simgeDiv.addEventListener("animationend", () => {
+          simgeler = simgeler.filter((s) => s !== simgeDiv);
+          simgeDiv.remove();
+        });
+      }
+
+      // Animasyon loop: çarpışma kontrolü
+      function oyunLoop() {
+        simgeler.forEach((simge) => {
+          const simgeRect = simge.getBoundingClientRect();
+          const penguenRect = penguen.getBoundingClientRect();
+
+          if (
+            penguenRect.left < simgeRect.right &&
+            penguenRect.right > simgeRect.left &&
+            penguenRect.bottom >= simgeRect.top &&
+            penguenRect.top <= simgeRect.bottom
+          ) {
+            if (simge.dataset.kelime === aktifKelime.kelime) {
+              puan++;
+              kelimeSec(); // yeni kelime seç
+              penguen.style.fontSize = 50 + puan * 2 + "px"; // büyüme
+            } else {
+              puan = Math.max(0, puan - 1);
+              penguen.style.fontSize =
+                Math.max(20, parseInt(penguen.style.fontSize) - 5) + "px"; // küçülme
+            }
+            puanElement.innerText = "Puan: " + puan;
+            simge.remove();
+            simgeler = simgeler.filter((s) => s !== simge);
+          }
+        });
+        requestAnimationFrame(oyunLoop);
+      }
+
+      // Başlangıç kelimesi
+      kelimeSec();
+      setInterval(simgeOlustur, 800);
+      oyunLoop();
+    </script>
+  </body>
+</html>
